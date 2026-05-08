@@ -125,11 +125,6 @@
 
                 <div class="mfa-form">
                     <div id="otp-email-notice" class="otp-notice"></div>
-                    <div id="otp-dev-box" class="otp-dev-box hidden">
-                        <span class="otp-dev-label">📬 Simulated Email OTP</span>
-                        <span id="otp-dev-code" class="otp-dev-code"></span>
-                        <span class="otp-dev-note">(This box replaces a real email — remove in production)</span>
-                    </div>
                     <div class="form-group" style="margin-top:20px;">
                         <label for="otp-input">Enter OTP Code</label>
                         <input type="text" id="otp-input" placeholder="6-digit code" maxlength="6"
@@ -141,7 +136,8 @@
                     </div>
                     <p id="otp-error" class="error" style="display:none;"></p>
                     <button class="btn btn-primary btn-full" onclick="verifyOTP()">Confirm OTP</button>
-                    <button class="btn btn-secondary btn-full" style="margin-top:10px;" onclick="resendOTP()">Resend Code</button>
+                    <button id="otp-resend-button" class="btn btn-secondary btn-full" style="margin-top:10px;" onclick="resendOTP()" disabled>Resend Code</button>
+                    <div id="otp-resend-info" class="otp-help" style="margin-top:10px; font-size:0.95rem; color:#ccc;">You can resend the OTP after 60 seconds if you did not receive it.</div>
                 </div>
             </div>
         </section>

@@ -56,6 +56,7 @@ let currentLoginAttempt = null;
 let currentOTP = null;
 let otpExpiry = null;
 let otpTimerInterval = null;
+let resendTimerInterval = null;
 
 // --- ACTIVITY LOGGING ---
 function logActivity(user, action) {
@@ -192,7 +193,7 @@ function handleLogin() {
     }
 }
 
-function verifyMFA() {
+async function verifyMFA() {
     const answer = document.getElementById('mfa-answer').value.trim();
     const correctAnswer = getUserSecurityAnswer(currentLoginAttempt);
     const mfaErrorEl = document.getElementById('mfa-error');
@@ -201,7 +202,7 @@ function verifyMFA() {
         mfaErrorEl.innerText = '';
         mfaErrorEl.style.display = 'none';
         logActivity(currentLoginAttempt.username, 'Security question answered correctly — OTP sent');
-        sendOTP(currentLoginAttempt);
+        await sendOTP(currentLoginAttempt);
     } else {
         mfaErrorEl.innerText = 'Incorrect answer. Try again.';
         mfaErrorEl.style.display = 'block';
@@ -215,33 +216,61 @@ function generateOTP() {
     return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function sendOTP(user) {
+async function sendOTP(user) {
     // Generate and store OTP
     currentOTP = generateOTP();
     otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    // Show OTP section
-    showOTPSection();
-
-    // Show the email notice (what a real email would say)
-    const email = user.email;
-    document.getElementById('otp-email-notice').innerHTML =
-        `A 6-digit OTP has been sent to <strong>${email}</strong>. Enter it below to complete login.`;
-
-    // DEV MODE: show the OTP in a visible box since there's no email host yet
-    const devBox = document.getElementById('otp-dev-box');
-    const devCode = document.getElementById('otp-dev-code');
-    devBox.classList.remove('hidden');
-    devCode.innerText = currentOTP;
-
-    // Clear previous errors and input
     const otpErr = document.getElementById('otp-error');
     otpErr.innerText = '';
     otpErr.style.display = 'none';
-    document.getElementById('otp-input').value = '';
 
-    // Start countdown timer
-    startOTPTimer();
+    try {
+        await sendOTPEmail(user, currentOTP);
+
+        showOTPSection();
+        const email = user.email;
+        document.getElementById('otp-email-notice').innerHTML =
+            `A 6-digit OTP has been sent to <strong>${email}</strong>. Enter it below to complete login.`;
+        document.getElementById('otp-input').value = '';
+
+        startOTPTimer();
+        setResendTimer(60);
+        logActivity(user.username, 'OTP sent via Web3Forms email');
+    } catch (error) {
+        otpErr.innerText = 'Unable to send OTP email. Please try again in a moment.';
+        otpErr.style.display = 'block';
+        logActivity(user.username, 'OTP send failed via Web3Forms');
+        currentOTP = null;
+        otpExpiry = null;
+        clearResendTimer();
+    }
+}
+
+async function sendOTPEmail(user, otpCode) {
+    const payload = {
+        access_key: '0a13e294-80fd-4cb1-9e74-3ca1ef37034d',
+        subject: 'Your IAS Website OTP Code',
+        from_name: 'IAS Secure Auth',
+        reply_to: 'no-reply@iaswebsite.com',
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        message: `Your one-time password is: ${otpCode}. It expires in 5 minutes. If you did not request this, please ignore this email.`
+    };
+
+    const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Web3Forms request failed');
+    }
+    return data;
 }
 
 function startOTPTimer() {
@@ -300,11 +329,14 @@ function verifyOTP() {
     }
 }
 
-function resendOTP() {
-    if (!currentLoginAttempt) return;
+async function resendOTP() {
+    const resendBtn = document.getElementById('otp-resend-button');
+    if (!currentLoginAttempt || (resendBtn && resendBtn.disabled)) return;
+
     clearInterval(otpTimerInterval);
+    clearResendTimer();
     logActivity(currentLoginAttempt.username, 'OTP resend requested');
-    sendOTP(currentLoginAttempt);
+    await sendOTP(currentLoginAttempt);
 }
 
 function completeLogin(user) {
@@ -319,6 +351,7 @@ function completeLogin(user) {
     currentOTP = null;
     otpExpiry = null;
     if (otpTimerInterval) { clearInterval(otpTimerInterval); otpTimerInterval = null; }
+    clearResendTimer();
 
     // Hide all auth sections
     document.getElementById('login-section').classList.add('hidden');
@@ -344,7 +377,41 @@ function logout() {
     currentOTP = null;
     otpExpiry = null;
     if (otpTimerInterval) { clearInterval(otpTimerInterval); otpTimerInterval = null; }
+    clearResendTimer();
     showLoginSection();
+}
+
+function setResendTimer(seconds) {
+    const resendBtn = document.getElementById('otp-resend-button');
+    const resendInfo = document.getElementById('otp-resend-info');
+    if (!resendBtn || !resendInfo) return;
+
+    let remaining = seconds;
+    resendBtn.disabled = true;
+    resendInfo.innerText = `You can resend the OTP in ${remaining} second${remaining === 1 ? '' : 's'}.`;
+
+    if (resendTimerInterval) clearInterval(resendTimerInterval);
+    resendTimerInterval = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+            clearResendTimer();
+            resendBtn.disabled = false;
+            resendInfo.innerText = 'Did not receive the code? Click resend to try again.';
+            return;
+        }
+        resendInfo.innerText = `You can resend the OTP in ${remaining} second${remaining === 1 ? '' : 's'}.`;
+    }, 1000);
+}
+
+function clearResendTimer() {
+    const resendBtn = document.getElementById('otp-resend-button');
+    const resendInfo = document.getElementById('otp-resend-info');
+    if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+        resendTimerInterval = null;
+    }
+    if (resendBtn) resendBtn.disabled = false;
+    if (resendInfo) resendInfo.innerText = 'You can resend the OTP if you did not receive it.';
 }
 
 // --- SIGNUP FUNCTION ---
