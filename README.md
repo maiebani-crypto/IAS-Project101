@@ -53,7 +53,7 @@ Each user now includes:
 
 ```
 IAS Website/
-├── main.html          # Main entry point with all UI sections
+├── index.html         # Main entry point with all UI sections
 ├── auth.js            # Authentication logic (login, MFA, lockout)
 ├── dashboard.js       # User dashboard & profile editing
 ├── admin.js           # Admin dashboard & user management
@@ -76,13 +76,20 @@ IAS Website/
 ### How to Use
 
 1. **Opening the System**
-   - Open `main.html` in a web browser
+   - Open `index.html` in a web browser
    - Enter demo credentials
 
 2. **Login Process**
    - Enter username & password
    - Answer security question
    - Access appropriate dashboard
+
+## 🚢 GitHub Pages Deployment
+
+1. Push the repository to GitHub.
+2. In the repository `Settings`, open `Pages`.
+3. Choose the `main` branch and `/ (root)` folder.
+4. GitHub Pages will automatically serve `index.html` as the site entry point.
 
 3. **User Dashboard**
    - View extended profile information

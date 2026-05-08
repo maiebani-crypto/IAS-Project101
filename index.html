@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Auth System - Dark Dashboard</title>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+    <div id="app">
+        <!-- LOGIN SECTION -->
+        <section id="login-section" class="auth-container">
+            <div class="login-box">
+                <div class="auth-header">
+                    <h1>🔐 Secure Auth System</h1>
+                    <p class="subtitle">Dark-themed Dashboard</p>
+                </div>
+
+                <div class="login-form">
+                    <h2>Secure Login</h2>
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" placeholder="Enter username" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+                        <small class="form-help">Min 8 chars: uppercase, lowercase, number</small>
+                    </div>
+                    <p id="login-error" class="error"></p>
+                    <button class="btn btn-primary btn-full" onclick="handleLogin()">Login</button>
+                </div>
+
+                <div class="login-footer">
+                    <p class="signup-link">Don't have an account? <button class="link-button" onclick="showSignupSection()">Create one</button></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SIGNUP SECTION -->
+        <section id="signup-section" class="auth-container hidden">
+            <div class="login-box">
+                <div class="auth-header">
+                    <h1>📝 Create New Account</h1>
+                    <p class="subtitle">Register for secure access</p>
+                </div>
+
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="signup-username">Username</label>
+                        <input type="text" id="signup-username" placeholder="Choose a username" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" placeholder="Enter password" autocomplete="new-password">
+                        <small class="form-help">Min 8 chars: uppercase, lowercase, number</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half-width">
+                            <label for="signup-firstname">First Name</label>
+                            <input type="text" id="signup-firstname" placeholder="First name">
+                        </div>
+                        <div class="form-group half-width">
+                            <label for="signup-lastname">Last Name</label>
+                            <input type="text" id="signup-lastname" placeholder="Last name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" placeholder="user@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-security-question">Security Question</label>
+                        <select id="signup-security-question">
+                            <option value="">No security question</option>
+                            <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                            <option value="What was the name of your first school?">What was the name of your first school?</option>
+                            <option value="What city were you born in?">What city were you born in?</option>
+                            <option value="What is your favorite book?">What is your favorite book?</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-security-answer">Security Answer</label>
+                        <input type="text" id="signup-security-answer" placeholder="Answer to selected question">
+                        <small class="form-help">Leave blank if you do not want to set a security question.</small>
+                    </div>
+                    <p id="signup-error" class="error"></p>
+                    <button class="btn btn-primary btn-full" onclick="signUpUser()">Create Account</button>
+                    <button class="btn btn-secondary btn-full" onclick="showLoginSection()">Back to Login</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MFA SECTION -->
+        <section id="mfa-section" class="auth-container hidden">
+            <div class="login-box">
+                <div class="auth-header">
+                    <h1>🔒 Security Verification</h1>
+                    <p class="subtitle">Multi-Factor Authentication</p>
+                </div>
+
+                <div class="mfa-form">
+                    <p class="mfa-instruction">Answer your security question to proceed:</p>
+                    <div class="security-question">
+                        <p id="security-prompt" class="question-text"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="mfa-answer">Your Answer</label>
+                        <input type="text" id="mfa-answer" placeholder="Enter your answer">
+                    </div>
+                    <p id="mfa-error" class="error"></p>
+                    <button class="btn btn-primary btn-full" onclick="verifyMFA()">Verify</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- OTP SECTION -->
+        <section id="otp-section" class="auth-container hidden">
+            <div class="login-box">
+                <div class="auth-header">
+                    <h1>📧 OTP Verification</h1>
+                    <p class="subtitle">One-Time Password</p>
+                </div>
+
+                <div class="mfa-form">
+                    <div id="otp-email-notice" class="otp-notice"></div>
+                    <div id="otp-dev-box" class="otp-dev-box hidden">
+                        <span class="otp-dev-label">📬 Simulated Email OTP</span>
+                        <span id="otp-dev-code" class="otp-dev-code"></span>
+                        <span class="otp-dev-note">(This box replaces a real email — remove in production)</span>
+                    </div>
+                    <div class="form-group" style="margin-top:20px;">
+                        <label for="otp-input">Enter OTP Code</label>
+                        <input type="text" id="otp-input" placeholder="6-digit code" maxlength="6"
+                               oninput="this.value=this.value.replace(/[^0-9]/g,'')" autocomplete="one-time-code">
+                    </div>
+                    <div class="otp-timer-row">
+                        <span class="otp-timer-label">Code expires in:</span>
+                        <span id="otp-countdown" class="otp-countdown">5:00</span>
+                    </div>
+                    <p id="otp-error" class="error" style="display:none;"></p>
+                    <button class="btn btn-primary btn-full" onclick="verifyOTP()">Confirm OTP</button>
+                    <button class="btn btn-secondary btn-full" style="margin-top:10px;" onclick="resendOTP()">Resend Code</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- USER DASHBOARD SECTION -->
+        <section id="user-dashboard" class="hidden">
+            <nav class="dashboard-navbar">
+                <div class="navbar-brand">
+                    <h2>📊 User Dashboard</h2>
+                </div>
+                <div class="navbar-user">
+                    <span id="user-name-display" class="user-name"></span>
+                </div>
+                <div class="navbar-menu">
+                    <button class="nav-item active" onclick="navigateDashboard('dashboard')">Dashboard</button>
+                    <button class="nav-item" onclick="navigateDashboard('edit')">Edit Profile</button>
+                    <button class="nav-item logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+
+            <div class="dashboard-container">
+                <div id="dashboard-view" class="dashboard-content"></div>
+            </div>
+        </section>
+
+        <!-- ADMIN DASHBOARD SECTION -->
+        <section id="admin-dashboard" class="hidden">
+            <nav class="dashboard-navbar">
+                <div class="navbar-brand">
+                    <h2>⚙️ Admin Dashboard</h2>
+                </div>
+                <div class="navbar-user">
+                    <span id="admin-name-display" class="user-name"></span>
+                </div>
+                <div class="navbar-menu">
+                    <button class="nav-item logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+
+            <div class="dashboard-container">
+                <div id="admin-content" class="dashboard-content"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="auth.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
